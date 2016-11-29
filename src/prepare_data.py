@@ -3,6 +3,8 @@ import pymongo
 import pandas as pd
 from pymongo import MongoClient
 
+import copy
+
 '''
 Imports the answer scores scraped from stack overflow
 '''
@@ -12,11 +14,21 @@ db = client.question_pred1
 collection = db.answer_score1
 data = pd.DataFrame(list(collection.find()))
 
+def reputation_change(x):
+    if x != None:
+        if x > 0:
+            return 10 * x
+        else:
+            return 2 * x
+
 def reputation(data):
     '''
     Converts the dataframe with an id and reputation points column.
     '''
 
+    data['score'] = data['score'].apply(reputation_change)
+    data['reputation'] = data['score']
+    del data['score']
     del data['_id']
     accept = data[data['accepted'] == 'accepted']
     accepted = list(accept['id'])
@@ -39,16 +51,80 @@ def relevant_data(df1):
     modified_df = modified_df.sort('Id')
 
 def clean_data(modified_df):
+    topics = ['ViewCount', 'Body', 'Score', 'CommentCount', 'FavoriteCount', 'Reputation', 'UpVotes', 'DownVotes']
     modified_df['Body'] = modified_df['Body'].apply(lambda x: len(x.split()))
-    del modified_df['CreationDate']
-    del modified_df['Id']
-    del modified_df['OwnerUserId']
-    del modified_df['Location']
-    del modified_df['WebsiteUrl']
-    del modified_df['OwnerDisplayName']
-    del modified_df['Title']
-    del modified_df['Age']
-    del modified_df['Tags']
-    del modified_df['CreationDate.1']
-    del modified_df['LastAccessDate']
     modified_df['FavoriteCount'] = modified_df['FavoriteCount'].fillna(0)
+    return modified_df[topics]
+
+def score_real(x):
+    if x >= 200:
+        return 0
+    elif x < 0:
+        return 0
+    else:
+        return x
+
+def score(x):
+    if x >= 200:
+        return 0
+    elif x <= 0:
+        return 0
+    else:
+        return 1
+
+def convert_html(html):
+    word = ''
+    for sentence in html.select('p'):
+        word += ' ' + sentence.text
+    return word.strip()
+
+def convert_documents(X):
+    result = []
+    for document in X:
+        soup = BeautifulSoup(document, 'html.parser')
+        result.append(convert_html(soup))
+    return np.array(result)
+
+# Building the classification dataset
+
+df = reputation(data)
+df1 = pd.read_csv('data/QueryResults.csv')
+modified_df = relevant_data(df1)
+master = copy.deepcopy(modified_df)
+
+def classification_data(modified_df):
+
+    vectorizer = TfidfVectorizer()
+
+    Z_class = modified_df['Body']
+    Z_class = convert_documents(Z_class)
+    Z_class = vectorizer.fit_transform(Z_class, y_0)
+
+    Z = clean_data(modified_df)
+
+    X_class = np.concatenate((Z, Z_class.todense()), axis=1)
+
+    y_0 = df['reputation'].apply(score)
+    y_0 = np.array(y_0)
+
+    return X_class, y_0
+
+# Building the regression dataset
+
+def regression_data():
+
+    vector = TfidfVectorizer()
+
+    Z_reg = positive['Body']
+    Z_reg = convert_documents(Z_reg)
+    Z_reg = vector.fit_transform(Z_reg, y)
+
+    Y = clean_data(positive)
+
+    X_reg = np.concatenate((Y, Z_reg.todense()), axis=1)
+
+    ids = df[df['reputation'] > 0]['id']
+    positive = master[np.in1d(modified_df['Id'], ids)]
+    y = df[df['reputation'] > 0]['reputation'].values
+
+    return X_reg, y
