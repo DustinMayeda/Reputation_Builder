@@ -1,18 +1,7 @@
-import numpy as np
-import pymongo
-import pandas as pd
-from pymongo import MongoClient
+from __future__ import division
 
 import copy
-
-'''
-Imports the answer scores scraped from stack overflow
-'''
-
-client = MongoClient()
-db = client.question_pred1
-collection = db.answer_score1
-data = pd.DataFrame(list(collection.find()))
+import pandas as pd
 
 def reputation_change(x):
     if x != None:
@@ -30,6 +19,7 @@ def reputation(data):
     data['reputation'] = data['score']
     del data['score']
     del data['_id']
+    del data['Unnamed: 0']
     accept = data[data['accepted'] == 'accepted']
     accepted = list(accept['id'])
     df = data.groupby('id').aggregate(lambda x: x.iloc[0])#.reset_index
@@ -86,7 +76,7 @@ def convert_documents(X):
     return np.array(result)
 
 # Building the classification dataset
-
+data = pd.read_csv('data/answer.csv')
 df = reputation(data)
 df1 = pd.read_csv('data/QueryResults.csv')
 modified_df = relevant_data(df1)
