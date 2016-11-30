@@ -15,25 +15,18 @@ To calculate the reputation to be gained from an answer we will need to query th
 
 ##Data Collection
 
-This predictive analytics problem does have a potential source of data leakage which is illustrated by the following situation.  If a question has a high number of views is it because it is "intrinsically" a good or interesting questions or is it because there is a high quality answer which has attracted many of the views?  In order to deal with this source of data leakage we first collect two week old questions with no answers from a data dump of Stack Overflow questions at data.stackexchange.com.  Then we scrape Stack Overflow in order to collect the current status of the questions including the number of reputation points the top answer received.
+This predictive analytics problem does have a potential source of data leakage which is illustrated by the following situation.  If a question has a high number of views is it because it is "intrinsically" a good or interesting question or is it because there is a high quality answer which has attracted many of the views?  In order to deal with this source of data leakage we first collect questions with no answers which are two weeks old from a data dump of Stack Overflow questions at data.stackexchange.com.  Then we scrape Stack Overflow in order to collect the current status of the questions including the number of reputation points the top answer received.
 
-##Modeling
+##Modeling and Results
 
-We will be using regression algorithms since the number of reputation points can take on a fairly large number of values.  To do the regression analysis we will use linear regression, ridge regression, decision tree, random forest, and boosted decision trees.  In order to compensate for the sensitivity of linear regression to outliers we will use ridge regression to reduce the variance.
+An out of the box linear regression and gradient boosting regressor trained on only the metadata yielded a mean absolute error of 25 and 17 respectively.  The following histogram of the data shows that there is a large number of questions whose answers do not generate any reputation points which explains why linear regression did so poorly.  In order to deal with the large number of zeroes we have decided to model the situation in two steps.  The first step is to train a classifier which will distinguish zero from nonzero responses and the second will be to train a regressor on the nonzero and to combine them by computing the following expected value:
 
-Time permitting I would like to do a time series analysis of the lifecycle of a question.  This would give us more information on how the reputation points for the top answer and average answer change.  Trends in this change would inform the user about how fast and when to post an answer. 
+E[rep | X] = 0 * pr(rep = 0) + E[rep | X, rep > 0] * pr(rep > 0)
 
+Combining the metadata and applying Tfidf vectorization to the body of the question our model with a tunned gradient boosted classifier and regressor yields a mean average error of 15 where as only applying a gradient boosted regressor to the metadata with TFidf vectorization yielded a mean average error of 16.  This result suggested that the better we can make our classifier the better mean average error our model will yield.
 
-Evaluation
+##Next Steps
 
-Since we will have a large data set we can make a hold out test set along with a training and validation set on which to train and to tune the parameters of the ridge regression, random forest, and boosted decision tree.
+Collect more granular data and do some more feature engineering in order to more accurately classify zero and nonzero questions.
 
-Given that we are most concerned with accuracy we will evaluate the above models using the mean squared error.  However, if the scores do not differ very much we will prefer linear regression, decision tree, and ridge regression due to their interpretability which will allow for more targeted questioning.
-
-
-Deployment
-
-The model will be deployed in a flask app in which the user will first enter a site.  Then enter either a url to a question for which predictions will be given or tags for which a collection of recent questions will be evaluated and presented to the user in order of highest projected point value.  If there is continued interest in using the model weekly datasets could be collected in order to evaluate the model to see if it has gone stale as indicated by a large change in the mean squared error.  Given more of these tests we could start to figure out what a reasonable level of accuracy is for predicting expected reputation point gain of a question.
-
-
-
+Build a web application to give a ranking of the 100 most recent questions and to give a score to any particular question given its url.
