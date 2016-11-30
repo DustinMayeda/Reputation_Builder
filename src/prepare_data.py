@@ -2,6 +2,7 @@ from __future__ import division
 
 import copy
 import pandas as pd
+from bs4 import BeautifulSoup
 
 def reputation_change(x):
     if x != None:
@@ -82,7 +83,7 @@ df1 = pd.read_csv('data/QueryResults.csv')
 modified_df = relevant_data(df1)
 master = copy.deepcopy(modified_df)
 
-def classification_data(modified_df):
+def classification_data():
 
     vectorizer = TfidfVectorizer()
 
@@ -97,7 +98,7 @@ def classification_data(modified_df):
     y_0 = df['reputation'].apply(score)
     y_0 = np.array(y_0)
 
-    return X_class, y_0
+    return X_class, y_0, vectorizer
 
 # Building the regression dataset
 
@@ -117,4 +118,4 @@ def regression_data():
     positive = master[np.in1d(modified_df['Id'], ids)]
     y = df[df['reputation'] > 0]['reputation'].values
 
-    return X_reg, y
+    return X_reg, y, vector
