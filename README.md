@@ -19,7 +19,7 @@ This predictive analytics problem does have a potential source of data leakage w
 
 ##Modeling and Results
 
-An out of the box linear regression and gradient boosting regressor trained on only the metadata yielded a mean absolute error of 25 and 17 respectively.  The following histogram of the data shows that there is a large number of questions whose answers do not generate any reputation points which explains why linear regression did so poorly.  In order to deal with the large number of zeroes we have decided to model the situation in two steps.  The first step is to train a classifier which will distinguish zero from nonzero responses and the second will be to train a regressor on the nonzero and to combine them by computing the following expected value:
+An out of the box linear regression and gradient boosting regressor trained on only the metadata yielded a mean absolute error of 25 and 17 respectively.  There are a large number of questions whose answers do not generate any reputation points which explains why linear regression did so poorly.  In order to deal with the large number of zeroes we have decided to model the situation in two steps.  The first step is to train a classifier which will distinguish zero from nonzero responses and the second will be to train a regressor on the nonzero and to combine them by computing the following expected value:
 
 E[rep | X] = 0 * pr(rep = 0) + E[rep | X, rep > 0] * pr(rep > 0)
 
